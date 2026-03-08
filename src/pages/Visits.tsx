@@ -1,21 +1,31 @@
 import AppLayout from '@/components/AppLayout';
-import { mockVisits } from '@/data/mockData';
+import { useVisits } from '@/hooks/useCrmData';
 import { format } from 'date-fns';
-import { CalendarCheck, CheckCircle, Clock, XCircle, HelpCircle, MapPin, User } from 'lucide-react';
+import { CalendarCheck, CheckCircle, XCircle, HelpCircle, Clock, MapPin, User } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const outcomeIcons = {
+const outcomeIcons: Record<string, JSX.Element> = {
   booked: <CheckCircle size={14} className="text-emerald-500" />,
   considering: <HelpCircle size={14} className="text-amber-500" />,
   not_interested: <XCircle size={14} className="text-red-500" />,
 };
 
 const Visits = () => {
-  const upcoming = mockVisits.filter(v => !v.outcome);
-  const past = mockVisits.filter(v => v.outcome);
+  const { data: visits, isLoading } = useVisits();
+
+  const upcoming = visits?.filter(v => !v.outcome) || [];
+  const past = visits?.filter(v => v.outcome) || [];
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Visit Scheduling" subtitle="Manage property visits and track outcomes">
+        <Skeleton className="h-[400px] rounded-xl" />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Visit Scheduling" subtitle="Manage property visits and track outcomes">
-      {/* Upcoming */}
       <div className="mb-8">
         <h2 className="font-display font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
           <CalendarCheck size={16} className="text-primary" /> Upcoming Visits ({upcoming.length})
@@ -25,9 +35,9 @@ const Visits = () => {
             <div key={visit.id} className="kpi-card">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <p className="font-medium text-sm text-foreground">{visit.leadName}</p>
+                  <p className="font-medium text-sm text-foreground">{visit.leads?.name}</p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <MapPin size={10} /> {visit.property}
+                    <MapPin size={10} /> {visit.properties?.name}
                   </p>
                 </div>
                 {visit.confirmed ? (
@@ -37,15 +47,15 @@ const Visits = () => {
                 )}
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Clock size={11} /> {format(new Date(visit.dateTime), 'MMM d, h:mm a')}</span>
-                <span className="flex items-center gap-1"><User size={11} /> {visit.assignedStaff.split(' ')[0]}</span>
+                <span className="flex items-center gap-1"><Clock size={11} /> {format(new Date(visit.scheduled_at), 'MMM d, h:mm a')}</span>
+                <span className="flex items-center gap-1"><User size={11} /> {visit.agents?.name?.split(' ')[0] || 'TBD'}</span>
               </div>
             </div>
           ))}
+          {upcoming.length === 0 && <p className="text-sm text-muted-foreground col-span-3 text-center py-8">No upcoming visits</p>}
         </div>
       </div>
 
-      {/* Past */}
       <div>
         <h2 className="font-display font-semibold text-sm text-foreground mb-3">Completed Visits</h2>
         <div className="kpi-card p-0 overflow-hidden">
@@ -62,10 +72,10 @@ const Visits = () => {
             <tbody>
               {past.map(visit => (
                 <tr key={visit.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium text-foreground">{visit.leadName}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{visit.property}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{format(new Date(visit.dateTime), 'MMM d, h:mm a')}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{visit.assignedStaff}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{visit.leads?.name}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{visit.properties?.name}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{format(new Date(visit.scheduled_at), 'MMM d, h:mm a')}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{visit.agents?.name}</td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-1 text-xs capitalize">
                       {visit.outcome && outcomeIcons[visit.outcome]}
@@ -74,6 +84,9 @@ const Visits = () => {
                   </td>
                 </tr>
               ))}
+              {past.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">No completed visits yet</td></tr>
+              )}
             </tbody>
           </table>
         </div>

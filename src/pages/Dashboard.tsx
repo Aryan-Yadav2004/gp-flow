@@ -1,21 +1,10 @@
 import AppLayout from '@/components/AppLayout';
 import KpiCard from '@/components/KpiCard';
-import { dashboardStats, mockLeads, mockAgents } from '@/data/mockData';
+import { useDashboardStats, useLeads, useAgentStats } from '@/hooks/useCrmData';
 import { PIPELINE_STAGES, SOURCE_LABELS } from '@/types/crm';
-import { Users, Clock, CalendarCheck, CheckCircle, TrendingUp, AlertTriangle, Timer, Building } from 'lucide-react';
+import { Users, Clock, CalendarCheck, CheckCircle, TrendingUp, AlertTriangle, Timer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
-const pipelineData = PIPELINE_STAGES.map(stage => ({
-  name: stage.label.replace(' ', '\n'),
-  count: mockLeads.filter(l => l.status === stage.key).length,
-}));
-
-const sourceData = Object.entries(
-  mockLeads.reduce((acc, l) => {
-    acc[l.source] = (acc[l.source] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>)
-).map(([key, value]) => ({ name: SOURCE_LABELS[key as keyof typeof SOURCE_LABELS], value }));
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PIE_COLORS = [
   'hsl(142, 71%, 45%)', 'hsl(217, 91%, 60%)', 'hsl(330, 80%, 60%)',
@@ -23,30 +12,54 @@ const PIE_COLORS = [
 ];
 
 const Dashboard = () => {
-  const slaBreaches = mockLeads.filter(l => l.firstResponseTime && l.firstResponseTime > 5).length;
-  const newLeads = mockLeads.filter(l => l.status === 'new');
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: leads, isLoading: leadsLoading } = useLeads();
+  const { data: agentStats, isLoading: agentsLoading } = useAgentStats();
+
+  const pipelineData = PIPELINE_STAGES.map(stage => ({
+    name: stage.label,
+    count: leads?.filter(l => l.status === stage.key).length || 0,
+  }));
+
+  const sourceData = leads
+    ? Object.entries(
+        leads.reduce((acc, l) => {
+          acc[l.source] = (acc[l.source] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      ).map(([key, value]) => ({ name: SOURCE_LABELS[key as keyof typeof SOURCE_LABELS] || key, value }))
+    : [];
+
+  const newLeads = leads?.filter(l => l.status === 'new') || [];
+
+  if (statsLoading || leadsLoading) {
+    return (
+      <AppLayout title="Dashboard" subtitle="Real-time overview of your sales pipeline">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-[120px] rounded-xl" />)}
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Dashboard" subtitle="Real-time overview of your sales pipeline">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <KpiCard title="Total Leads" value={dashboardStats.totalLeads} change={12} icon={<Users size={18} />} />
-        <KpiCard title="Avg Response Time" value={dashboardStats.avgResponseTime} suffix="min" change={-8} icon={<Clock size={18} />} color="hsl(38, 92%, 50%)" />
-        <KpiCard title="Visits Scheduled" value={dashboardStats.visitsScheduled} change={15} icon={<CalendarCheck size={18} />} color="hsl(173, 80%, 40%)" />
-        <KpiCard title="Bookings Closed" value={dashboardStats.bookingsClosed} change={22} icon={<CheckCircle size={18} />} color="hsl(142, 71%, 45%)" />
+        <KpiCard title="Total Leads" value={stats?.totalLeads ?? 0} change={12} icon={<Users size={18} />} />
+        <KpiCard title="Avg Response Time" value={stats?.avgResponseTime ?? 0} suffix="min" change={-8} icon={<Clock size={18} />} color="hsl(38, 92%, 50%)" />
+        <KpiCard title="Visits Scheduled" value={stats?.visitsScheduled ?? 0} change={15} icon={<CalendarCheck size={18} />} color="hsl(173, 80%, 40%)" />
+        <KpiCard title="Bookings Closed" value={stats?.bookingsClosed ?? 0} change={22} icon={<CheckCircle size={18} />} color="hsl(142, 71%, 45%)" />
       </div>
-
-      {/* Second row KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <KpiCard title="Conversion Rate" value={dashboardStats.conversionRate} suffix="%" change={5} icon={<TrendingUp size={18} />} color="hsl(262, 83%, 58%)" />
-        <KpiCard title="SLA Compliance" value={dashboardStats.responseWithinSLA} suffix="%" change={-3} icon={<Timer size={18} />} color="hsl(217, 91%, 60%)" />
-        <KpiCard title="New Today" value={dashboardStats.newToday} icon={<Users size={18} />} color="hsl(330, 80%, 60%)" />
-        <KpiCard title="SLA Breaches" value={slaBreaches} icon={<AlertTriangle size={18} />} color="hsl(0, 72%, 51%)" />
+        <KpiCard title="Conversion Rate" value={stats?.conversionRate ?? 0} suffix="%" change={5} icon={<TrendingUp size={18} />} color="hsl(262, 83%, 58%)" />
+        <KpiCard title="SLA Compliance" value={stats?.slaCompliance ?? 0} suffix="%" change={-3} icon={<Timer size={18} />} color="hsl(217, 91%, 60%)" />
+        <KpiCard title="New Today" value={stats?.newToday ?? 0} icon={<Users size={18} />} color="hsl(330, 80%, 60%)" />
+        <KpiCard title="SLA Breaches" value={stats?.slaBreaches ?? 0} icon={<AlertTriangle size={18} />} color="hsl(0, 72%, 51%)" />
       </div>
 
-      {/* Charts Row */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Pipeline Distribution */}
         <div className="lg:col-span-2 kpi-card">
           <h3 className="font-display font-semibold text-sm text-foreground mb-4">Pipeline Distribution</h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -59,15 +72,12 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Lead Sources */}
         <div className="kpi-card">
           <h3 className="font-display font-semibold text-sm text-foreground mb-4">Lead Sources</h3>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={sourceData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
-                {sourceData.map((_, i) => (
-                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                ))}
+                {sourceData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
               <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
             </PieChart>
@@ -85,7 +95,6 @@ const Dashboard = () => {
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* New Leads Requiring Attention */}
         <div className="kpi-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display font-semibold text-sm text-foreground">🔴 Needs Attention</h3>
@@ -96,22 +105,22 @@ const Dashboard = () => {
               <div key={lead.id} className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50">
                 <div>
                   <p className="text-sm font-medium text-foreground">{lead.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{lead.preferredLocation} • {lead.budget}</p>
+                  <p className="text-[10px] text-muted-foreground">{lead.preferred_location} • {lead.budget}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-muted-foreground">{lead.assignedAgent}</p>
+                  <p className="text-[10px] text-muted-foreground">{lead.agents?.name}</p>
                   <p className="text-[10px] text-destructive font-medium">Awaiting response</p>
                 </div>
               </div>
             ))}
+            {newLeads.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">All leads responded ✅</p>}
           </div>
         </div>
 
-        {/* Agent Performance */}
         <div className="kpi-card">
           <h3 className="font-display font-semibold text-sm text-foreground mb-3">Agent Performance</h3>
           <div className="space-y-2">
-            {mockAgents.map(agent => (
+            {(agentStats || []).map(agent => (
               <div key={agent.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/50">
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <span className="text-xs font-bold text-primary">{agent.name.charAt(0)}</span>
@@ -125,7 +134,9 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-display font-bold text-foreground">{Math.round((agent.conversions / agent.totalLeads) * 100)}%</p>
+                  <p className="text-lg font-display font-bold text-foreground">
+                    {agent.totalLeads ? Math.round((agent.conversions / agent.totalLeads) * 100) : 0}%
+                  </p>
                   <p className="text-[9px] text-muted-foreground">conversion</p>
                 </div>
               </div>
