@@ -40,9 +40,35 @@ const LeadDetailDrawer = ({ lead, open, onClose }: Props) => {
   const { data: conversations } = useConversations(lead?.id);
   const { data: followUps } = useFollowUps(lead?.id);
   const { data: activityLog } = useActivityLog(lead?.id);
+  const { data: bookings } = useBookingsByLead(lead?.id);
   const createFollowUp = useCreateFollowUp();
   const [note, setNote] = useState('');
   const [reminderDate, setReminderDate] = useState('');
+  const [aiSummary, setAiSummary] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleAiSummary = async () => {
+    if (!lead) return;
+    setAiLoading(true);
+    setAiSummary(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-lead-summary', {
+        body: {
+          lead: { ...lead, agent_name: lead.agents?.name },
+          conversations: conversations?.slice(0, 5),
+          visits: [],
+          bookings: bookings?.map((b: any) => ({ property_name: b.properties?.name, booking_status: b.booking_status, monthly_rent: b.monthly_rent })),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiSummary(data);
+    } catch (e: any) {
+      toast.error(e.message || 'AI analysis failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   if (!lead) return null;
 
