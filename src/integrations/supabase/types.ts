@@ -146,6 +146,7 @@ export type Database = {
           first_response_time_min: number | null
           id: string
           last_activity_at: string
+          lead_score: number | null
           name: string
           next_follow_up: string | null
           notes: string | null
@@ -154,6 +155,7 @@ export type Database = {
           property_id: string | null
           source: Database["public"]["Enums"]["lead_source"]
           status: Database["public"]["Enums"]["pipeline_stage"]
+          tags: string[] | null
           updated_at: string
         }
         Insert: {
@@ -164,6 +166,7 @@ export type Database = {
           first_response_time_min?: number | null
           id?: string
           last_activity_at?: string
+          lead_score?: number | null
           name: string
           next_follow_up?: string | null
           notes?: string | null
@@ -172,6 +175,7 @@ export type Database = {
           property_id?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["pipeline_stage"]
+          tags?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -182,6 +186,7 @@ export type Database = {
           first_response_time_min?: number | null
           id?: string
           last_activity_at?: string
+          lead_score?: number | null
           name?: string
           next_follow_up?: string | null
           notes?: string | null
@@ -190,6 +195,7 @@ export type Database = {
           property_id?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["pipeline_stage"]
+          tags?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -208,6 +214,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       properties: {
         Row: {
@@ -308,7 +338,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_lead_score: { Args: { p_lead_id: string }; Returns: number }
+      recalculate_all_lead_scores: { Args: never; Returns: undefined }
     }
     Enums: {
       lead_source:

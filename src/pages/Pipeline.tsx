@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import LeadCard from '@/components/LeadCard';
+import LeadDetailDrawer from '@/components/LeadDetailDrawer';
 import AddLeadDialog from '@/components/AddLeadDialog';
 import { useLeads, useUpdateLead } from '@/hooks/useCrmData';
 import { PIPELINE_STAGES, type PipelineStage } from '@/types/crm';
@@ -32,7 +33,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   );
 }
 
-function DraggableCard({ lead }: { lead: LeadWithRelations }) {
+function DraggableCard({ lead, onClick }: { lead: LeadWithRelations; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
     data: { lead },
@@ -44,6 +45,7 @@ function DraggableCard({ lead }: { lead: LeadWithRelations }) {
       {...listeners}
       {...attributes}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
+      onDoubleClick={onClick}
     >
       <LeadCard lead={{
         id: lead.id,
@@ -67,6 +69,8 @@ const Pipeline = () => {
   const { data: leads, isLoading } = useLeads();
   const updateLead = useUpdateLead();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedLead, setSelectedLead] = useState<LeadWithRelations | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -94,6 +98,11 @@ const Pipeline = () => {
     } catch (err: any) {
       toast.error(err.message || 'Failed to update lead');
     }
+  };
+
+  const openDetail = (lead: LeadWithRelations) => {
+    setSelectedLead(lead);
+    setDrawerOpen(true);
   };
 
   if (isLoading) {
@@ -126,7 +135,7 @@ const Pipeline = () => {
                   </div>
                   <DroppableColumn id={stage.key}>
                     {stageLeads.map(lead => (
-                      <DraggableCard key={lead.id} lead={lead} />
+                      <DraggableCard key={lead.id} lead={lead} onClick={() => openDetail(lead)} />
                     ))}
                     {stageLeads.length === 0 && (
                       <div className="text-center py-8 text-xs text-muted-foreground">No leads</div>
@@ -159,6 +168,8 @@ const Pipeline = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <LeadDetailDrawer lead={selectedLead} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </AppLayout>
   );
 };

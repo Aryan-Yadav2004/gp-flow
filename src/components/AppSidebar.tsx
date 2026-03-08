@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   Users,
@@ -9,8 +10,9 @@ import {
   Settings,
   MessageSquare,
   History,
-  Menu,
   X,
+  LogOut,
+  Bell,
 } from 'lucide-react';
 
 const navItems = [
@@ -25,10 +27,10 @@ const navItems = [
 
 const AppSidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />
       )}
@@ -39,7 +41,6 @@ const AppSidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => voi
         }`}
         style={{ background: 'hsl(var(--sidebar-bg))', borderColor: 'hsl(var(--sidebar-border))' }}
       >
-        {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -55,7 +56,6 @@ const AppSidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => voi
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.to;
@@ -73,15 +73,22 @@ const AppSidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => voi
           })}
         </nav>
 
-        {/* Bottom */}
         <div className="px-3 py-4 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
           <NavLink to="/settings" onClick={onClose} className={`sidebar-link ${location.pathname === '/settings' ? 'active' : ''}`}>
             <Settings size={18} />
             Settings
           </NavLink>
+          <button onClick={signOut} className="sidebar-link w-full mt-1 hover:!text-red-400">
+            <LogOut size={18} />
+            Sign Out
+          </button>
           <div className="mt-4 mx-3 p-3 rounded-lg" style={{ background: 'hsl(var(--sidebar-hover))' }}>
-            <p className="text-xs font-medium" style={{ color: 'hsl(var(--sidebar-active-fg))' }}>Admin User</p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'hsl(var(--sidebar-fg))' }}>admin@gharpayy.com</p>
+            <p className="text-xs font-medium truncate" style={{ color: 'hsl(var(--sidebar-active-fg))' }}>
+              {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+            </p>
+            <p className="text-[10px] mt-0.5 truncate" style={{ color: 'hsl(var(--sidebar-fg))' }}>
+              {user?.email || ''}
+            </p>
           </div>
         </div>
       </aside>

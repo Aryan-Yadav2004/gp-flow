@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import AddLeadDialog from '@/components/AddLeadDialog';
+import LeadDetailDrawer from '@/components/LeadDetailDrawer';
 import { useLeads } from '@/hooks/useCrmData';
+import { useBulkUpdateLeads, useDeleteLeads } from '@/hooks/useLeadDetails';
 import { PIPELINE_STAGES, SOURCE_LABELS } from '@/types/crm';
-import { Filter, Download } from 'lucide-react';
+import { Filter, Download, Star, Trash2, UserPlus, ArrowUpDown, CheckSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { useAgents, type LeadWithRelations } from '@/hooks/useCrmData';
 
 const statusBadge = (status: string) => {
   const stage = PIPELINE_STAGES.find(s => s.key === status);
@@ -16,21 +23,84 @@ const statusBadge = (status: string) => {
   );
 };
 
+const scoreColor = (score: number) => {
+  if (score >= 70) return 'text-emerald-600';
+  if (score >= 40) return 'text-amber-600';
+  return 'text-red-600';
+};
+
 const Leads = () => {
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedLead, setSelectedLead] = useState<LeadWithRelations | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { data: leads, isLoading } = useLeads();
+  const { data: agents } = useAgents();
+  const bulkUpdate = useBulkUpdateLeads();
+  const deleteLeads = useDeleteLeads();
 
-  const filtered = (leads || []).filter(l => {
-    if (filterSource !== 'all' && l.source !== filterSource) return false;
-    if (filterStatus !== 'all' && l.status !== filterStatus) return false;
-    return true;
-  });
+  const filtered = (leads || [])
+    .filter(l => {
+      if (filterSource !== 'all' && l.source !== filterSource) return false;
+      if (filterStatus !== 'all' && l.status !== filterStatus) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest': return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest': return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'score_high': return ((b as any).lead_score ?? 0) - ((a as any).lead_score ?? 0);
+        case 'score_low': return ((a as any).lead_score ?? 0) - ((b as any).lead_score ?? 0);
+        case 'response': return (a.first_response_time_min ?? 999) - (b.first_response_time_min ?? 999);
+        default: return 0;
+      }
+    });
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === filtered.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map(l => l.id)));
+  };
+
+  const handleBulkAssign = async (agentId: string) => {
+    if (selectedIds.size === 0) return;
+    try {
+      await bulkUpdate.mutateAsync({ ids: Array.from(selectedIds), updates: { assigned_agent_id: agentId } });
+      toast.success(`${selectedIds.size} leads reassigned`);
+      setSelectedIds(new Set());
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleBulkStatus = async (status: string) => {
+    if (selectedIds.size === 0) return;
+    try {
+      await bulkUpdate.mutateAsync({ ids: Array.from(selectedIds), updates: { status: status as any } });
+      toast.success(`${selectedIds.size} leads updated`);
+      setSelectedIds(new Set());
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} leads? This cannot be undone.`)) return;
+    try {
+      await deleteLeads.mutateAsync(Array.from(selectedIds));
+      toast.success(`${selectedIds.size} leads deleted`);
+      setSelectedIds(new Set());
+    } catch (err: any) { toast.error(err.message); }
+  };
 
   const handleExport = () => {
     const csv = [
-      ['Name', 'Phone', 'Email', 'Source', 'Status', 'Agent', 'Location', 'Budget'].join(','),
-      ...filtered.map(l => [l.name, l.phone, l.email || '', l.source, l.status, l.agents?.name || '', l.preferred_location || '', l.budget || ''].join(','))
+      ['Name', 'Phone', 'Email', 'Source', 'Status', 'Agent', 'Location', 'Budget', 'Score'].join(','),
+      ...filtered.map(l => [l.name, l.phone, l.email || '', l.source, l.status, l.agents?.name || '', l.preferred_location || '', l.budget || '', (l as any).lead_score ?? 0].join(','))
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -38,6 +108,11 @@ const Leads = () => {
     a.href = url;
     a.download = 'leads-export.csv';
     a.click();
+  };
+
+  const openDetail = (lead: LeadWithRelations) => {
+    setSelectedLead(lead);
+    setDrawerOpen(true);
   };
 
   if (isLoading) {
@@ -50,8 +125,9 @@ const Leads = () => {
 
   return (
     <AppLayout title="All Leads" subtitle={`${filtered.length} leads found`} actions={<AddLeadDialog />}>
+      {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter size={14} className="text-muted-foreground" />
           <select value={filterSource} onChange={e => setFilterSource(e.target.value)}
             className="text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30">
@@ -63,23 +139,61 @@ const Leads = () => {
             <option value="all">All Stages</option>
             {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            className="text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="score_high">Score: High → Low</option>
+            <option value="score_low">Score: Low → High</option>
+            <option value="response">Response Time</option>
+          </select>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button onClick={handleExport} className="flex items-center gap-1.5 text-xs bg-secondary text-secondary-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors">
             <Download size={13} /> Export
           </button>
         </div>
       </div>
 
+      {/* Bulk actions bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 border border-primary/20 rounded-lg flex-wrap">
+          <span className="text-xs font-medium text-foreground">{selectedIds.size} selected</span>
+          <Select onValueChange={handleBulkAssign}>
+            <SelectTrigger className="h-7 w-[140px] text-xs"><SelectValue placeholder="Assign to..." /></SelectTrigger>
+            <SelectContent>
+              {agents?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select onValueChange={handleBulkStatus}>
+            <SelectTrigger className="h-7 w-[140px] text-xs"><SelectValue placeholder="Change status..." /></SelectTrigger>
+            <SelectContent>
+              {PIPELINE_STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button variant="destructive" size="sm" className="h-7 text-xs gap-1" onClick={handleBulkDelete}>
+            <Trash2 size={11} /> Delete
+          </Button>
+          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground ml-auto">
+            Clear selection
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
       <div className="kpi-card overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
+                <th className="px-4 py-3 w-8">
+                  <Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Contact</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Source</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Score</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Agent</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Location</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Budget</th>
@@ -88,11 +202,20 @@ const Leads = () => {
             </thead>
             <tbody>
               {filtered.map(lead => (
-                <tr key={lead.id} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors cursor-pointer">
+                <tr key={lead.id} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors cursor-pointer"
+                  onClick={() => openDetail(lead)}>
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} />
+                  </td>
                   <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{lead.phone}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{SOURCE_LABELS[lead.source as keyof typeof SOURCE_LABELS] || lead.source}</td>
                   <td className="px-4 py-3">{statusBadge(lead.status)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold flex items-center gap-1 ${scoreColor((lead as any).lead_score ?? 0)}`}>
+                      <Star size={10} /> {(lead as any).lead_score ?? 0}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{lead.agents?.name || 'Unassigned'}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{lead.preferred_location || '—'}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{lead.budget || '—'}</td>
@@ -111,6 +234,8 @@ const Leads = () => {
           </table>
         </div>
       </div>
+
+      <LeadDetailDrawer lead={selectedLead} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </AppLayout>
   );
 };
