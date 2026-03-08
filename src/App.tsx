@@ -22,6 +22,7 @@ import Bookings from "./pages/Bookings";
 import ZoneManagement from "./pages/ZoneManagement";
 import Explore from "./pages/Explore";
 import PropertyDetail from "./pages/PropertyDetail";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
