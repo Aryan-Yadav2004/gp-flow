@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface KpiCardProps {
   title: string;
@@ -15,23 +16,28 @@ const KpiCard = ({ title, value, change, icon, suffix, color }: KpiCardProps) =>
   const isNegative = change && change < 0;
 
   return (
-    <div className="kpi-card">
-      <div className="flex items-start justify-between mb-3">
-        <div className="p-2 rounded-lg" style={{ background: color ? `${color}15` : 'hsl(var(--accent))' }}>
-          <div style={{ color: color || 'hsl(var(--primary))' }}>{icon}</div>
+    <motion.div
+      className="kpi-card"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-2.5 rounded-xl" style={{ background: color ? `${color}12` : 'hsl(var(--secondary))' }}>
+          <div style={{ color: color || 'hsl(var(--accent))' }}>{icon}</div>
         </div>
         {change !== undefined && (
-          <div className={`flex items-center gap-0.5 text-xs font-medium ${isPositive ? 'stat-up' : isNegative ? 'stat-down' : 'text-muted-foreground'}`}>
-            {isPositive ? <ArrowUp size={12} /> : isNegative ? <ArrowDown size={12} /> : null}
+          <div className={`flex items-center gap-0.5 text-2xs font-medium ${isPositive ? 'text-success' : isNegative ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {isPositive ? <ArrowUp size={11} /> : isNegative ? <ArrowDown size={11} /> : null}
             {Math.abs(change)}%
           </div>
         )}
       </div>
-      <div className="text-2xl font-display font-bold text-foreground">
-        {value}{suffix && <span className="text-sm font-normal text-muted-foreground ml-1">{suffix}</span>}
+      <div className="text-xl font-display font-bold text-foreground tracking-tight">
+        {value}{suffix && <span className="text-xs font-normal text-muted-foreground ml-1">{suffix}</span>}
       </div>
-      <p className="text-xs text-muted-foreground mt-1">{title}</p>
-    </div>
+      <p className="text-2xs text-muted-foreground mt-1.5">{title}</p>
+    </motion.div>
   );
 };
 

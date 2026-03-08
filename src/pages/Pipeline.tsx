@@ -16,17 +16,17 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { useDroppable } from '@dnd-kit/core';
-import { useDraggable } from '@dnd-kit/core';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { toast } from 'sonner';
 import type { LeadWithRelations } from '@/hooks/useCrmData';
+import { motion } from 'framer-motion';
 
 function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[60px] space-y-2 transition-colors rounded-lg ${isOver ? 'bg-primary/10 ring-1 ring-primary/30' : ''}`}
+      className={`min-h-[60px] space-y-2.5 transition-all rounded-xl ${isOver ? 'bg-accent/5 ring-1 ring-accent/20' : ''}`}
     >
       {children}
     </div>
@@ -78,9 +78,7 @@ const Pipeline = () => {
 
   const activeLead = leads?.find(l => l.id === activeId);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
+  const handleDragStart = (event: DragStartEvent) => setActiveId(event.active.id as string);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveId(null);
@@ -107,27 +105,33 @@ const Pipeline = () => {
 
   if (isLoading) {
     return (
-      <AppLayout title="Lead Pipeline" subtitle="Track leads through every stage">
-        <div className="flex gap-3">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[400px] w-[290px] rounded-xl" />)}
+      <AppLayout title="Pipeline" subtitle="Track leads through every stage">
+        <div className="flex gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[400px] w-[290px] rounded-2xl" />)}
         </div>
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout title="Lead Pipeline" subtitle="Track leads through every stage" actions={<AddLeadDialog />}>
+    <AppLayout title="Pipeline" subtitle="Track leads through every stage" actions={<AddLeadDialog />}>
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
-            {PIPELINE_STAGES.map(stage => {
+            {PIPELINE_STAGES.map((stage, i) => {
               const stageLeads = leads?.filter(l => l.status === stage.key) || [];
               return (
-                <div key={stage.key} className="pipeline-column bg-secondary/50 w-[290px]">
-                  <div className="flex items-center justify-between mb-2 px-1">
+                <motion.div
+                  key={stage.key}
+                  className="pipeline-column bg-secondary/30 w-[290px]"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: i * 0.04, ease: [0.32, 0.72, 0, 1] }}
+                >
+                  <div className="flex items-center justify-between mb-3 px-1">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-                      <h3 className="font-display font-semibold text-xs text-foreground">{stage.label}</h3>
+                      <div className={`w-2 h-2 rounded-full ${stage.color}`} />
+                      <h3 className="font-display font-semibold text-2xs text-foreground">{stage.label}</h3>
                     </div>
                     <span className="text-[10px] font-medium bg-card px-2 py-0.5 rounded-full text-muted-foreground border border-border">
                       {stageLeads.length}
@@ -138,10 +142,10 @@ const Pipeline = () => {
                       <DraggableCard key={lead.id} lead={lead} onClick={() => openDetail(lead)} />
                     ))}
                     {stageLeads.length === 0 && (
-                      <div className="text-center py-8 text-xs text-muted-foreground">No leads</div>
+                      <div className="text-center py-10 text-2xs text-muted-foreground">No leads</div>
                     )}
                   </DroppableColumn>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -149,7 +153,7 @@ const Pipeline = () => {
 
         <DragOverlay>
           {activeLead ? (
-            <div className="rotate-2 opacity-90">
+            <div className="rotate-1 opacity-90">
               <LeadCard lead={{
                 id: activeLead.id,
                 name: activeLead.name,

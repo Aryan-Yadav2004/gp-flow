@@ -1,7 +1,8 @@
 import AppLayout from '@/components/AppLayout';
 import { useAgentStats, useLeads } from '@/hooks/useCrmData';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 
 const Analytics = () => {
   const { data: agentStats, isLoading: agentsLoading } = useAgentStats();
@@ -10,13 +11,12 @@ const Analytics = () => {
   if (agentsLoading || leadsLoading) {
     return (
       <AppLayout title="Analytics" subtitle="Performance metrics and insights">
-        <Skeleton className="h-[300px] rounded-xl mb-6" />
-        <Skeleton className="h-[260px] rounded-xl" />
+        <Skeleton className="h-[300px] rounded-2xl mb-6" />
+        <Skeleton className="h-[260px] rounded-2xl" />
       </AppLayout>
     );
   }
 
-  // Group leads by day for trend
   const dayMap: Record<string, { leads: number; booked: number }> = {};
   (leads || []).forEach(l => {
     const day = new Date(l.created_at).toLocaleDateString('en-US', { weekday: 'short' });
@@ -34,32 +34,42 @@ const Analytics = () => {
 
   return (
     <AppLayout title="Analytics" subtitle="Performance metrics and insights">
-      <div className="kpi-card mb-6">
-        <h3 className="font-display font-semibold text-sm text-foreground mb-4">Leads by Day</h3>
+      <motion.div
+        className="kpi-card mb-6"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <h3 className="font-display font-semibold text-xs text-foreground mb-5">Leads by Day</h3>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={trendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'hsl(220, 10%, 46%)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'hsl(220, 10%, 46%)' }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
-            <Bar dataKey="leads" fill="hsl(24, 95%, 53%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="booked" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 10%, 92%)" />
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(220, 8%, 50%)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: 'hsl(220, 8%, 50%)' }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '11px' }} />
+            <Bar dataKey="leads" fill="hsl(25, 95%, 53%)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="booked" fill="hsl(152, 60%, 42%)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </motion.div>
 
-      <div className="kpi-card">
-        <h3 className="font-display font-semibold text-sm text-foreground mb-4">Agent Comparison</h3>
+      <motion.div
+        className="kpi-card"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <h3 className="font-display font-semibold text-xs text-foreground mb-5">Agent Comparison</h3>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={agentChartData}>
-            <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(220, 10%, 46%)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'hsl(220, 10%, 46%)' }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
-            <Bar dataKey="leads" fill="hsl(24, 95%, 53%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="conversions" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'hsl(220, 8%, 50%)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: 'hsl(220, 8%, 50%)' }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '11px' }} />
+            <Bar dataKey="leads" fill="hsl(25, 95%, 53%)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="conversions" fill="hsl(152, 60%, 42%)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </motion.div>
     </AppLayout>
   );
 };

@@ -5,28 +5,29 @@ import LeadDetailDrawer from '@/components/LeadDetailDrawer';
 import { useLeads } from '@/hooks/useCrmData';
 import { useBulkUpdateLeads, useDeleteLeads } from '@/hooks/useLeadDetails';
 import { PIPELINE_STAGES, SOURCE_LABELS } from '@/types/crm';
-import { Filter, Download, Star, Trash2, UserPlus, ArrowUpDown, CheckSquare } from 'lucide-react';
+import { Filter, Download, Star, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { useAgents, type LeadWithRelations } from '@/hooks/useCrmData';
+import { motion } from 'framer-motion';
 
 const statusBadge = (status: string) => {
   const stage = PIPELINE_STAGES.find(s => s.key === status);
   if (!stage) return null;
   return (
-    <span className={`badge-pipeline text-[10px] text-primary-foreground ${stage.color}`}>
+    <span className={`badge-pipeline text-[10px] text-accent-foreground ${stage.color}`}>
       {stage.label}
     </span>
   );
 };
 
 const scoreColor = (score: number) => {
-  if (score >= 70) return 'text-emerald-600';
-  if (score >= 40) return 'text-amber-600';
-  return 'text-red-600';
+  if (score >= 70) return 'text-success';
+  if (score >= 40) return 'text-warning';
+  return 'text-destructive';
 };
 
 const Leads = () => {
@@ -118,7 +119,7 @@ const Leads = () => {
   if (isLoading) {
     return (
       <AppLayout title="All Leads" subtitle="Loading...">
-        <Skeleton className="h-[500px] rounded-xl" />
+        <Skeleton className="h-[500px] rounded-2xl" />
       </AppLayout>
     );
   }
@@ -126,21 +127,21 @@ const Leads = () => {
   return (
     <AppLayout title="All Leads" subtitle={`${filtered.length} leads found`} actions={<AddLeadDialog />}>
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={14} className="text-muted-foreground" />
+          <Filter size={13} className="text-muted-foreground" />
           <select value={filterSource} onChange={e => setFilterSource(e.target.value)}
-            className="text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30">
+            className="text-2xs bg-card border border-border rounded-xl px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring/30">
             <option value="all">All Sources</option>
             {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30">
+            className="text-2xs bg-card border border-border rounded-xl px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring/30">
             <option value="all">All Stages</option>
             {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-            className="text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30">
+            className="text-2xs bg-card border border-border rounded-xl px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring/30">
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="score_high">Score: High → Low</option>
@@ -148,84 +149,84 @@ const Leads = () => {
             <option value="response">Response Time</option>
           </select>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={handleExport} className="flex items-center gap-1.5 text-xs bg-secondary text-secondary-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors">
-            <Download size={13} /> Export
-          </button>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" className="gap-1.5 text-2xs rounded-xl" onClick={handleExport}>
+            <Download size={12} /> Export
+          </Button>
         </div>
       </div>
 
-      {/* Bulk actions bar */}
+      {/* Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 border border-primary/20 rounded-lg flex-wrap">
-          <span className="text-xs font-medium text-foreground">{selectedIds.size} selected</span>
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 mb-4 p-4 bg-accent/5 border border-accent/15 rounded-2xl flex-wrap"
+        >
+          <span className="text-2xs font-medium text-foreground">{selectedIds.size} selected</span>
           <Select onValueChange={handleBulkAssign}>
-            <SelectTrigger className="h-7 w-[140px] text-xs"><SelectValue placeholder="Assign to..." /></SelectTrigger>
-            <SelectContent>
-              {agents?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
+            <SelectTrigger className="h-7 w-[140px] text-2xs rounded-lg"><SelectValue placeholder="Assign to..." /></SelectTrigger>
+            <SelectContent>{agents?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
           <Select onValueChange={handleBulkStatus}>
-            <SelectTrigger className="h-7 w-[140px] text-xs"><SelectValue placeholder="Change status..." /></SelectTrigger>
-            <SelectContent>
-              {PIPELINE_STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-            </SelectContent>
+            <SelectTrigger className="h-7 w-[140px] text-2xs rounded-lg"><SelectValue placeholder="Change status..." /></SelectTrigger>
+            <SelectContent>{PIPELINE_STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
           </Select>
-          <Button variant="destructive" size="sm" className="h-7 text-xs gap-1" onClick={handleBulkDelete}>
-            <Trash2 size={11} /> Delete
+          <Button variant="destructive" size="sm" className="h-7 text-2xs gap-1 rounded-lg" onClick={handleBulkDelete}>
+            <Trash2 size={10} /> Delete
           </Button>
-          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground ml-auto">
-            Clear selection
+          <button onClick={() => setSelectedIds(new Set())} className="text-2xs text-muted-foreground hover:text-foreground ml-auto transition-colors">
+            Clear
           </button>
-        </div>
+        </motion.div>
       )}
 
       {/* Table */}
       <div className="kpi-card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="px-4 py-3 w-8">
+              <tr className="border-b border-border bg-secondary/30">
+                <th className="px-4 py-3.5 w-8">
                   <Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Name</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Contact</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Source</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Score</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Agent</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Location</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Budget</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Response</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Name</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Contact</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Source</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Score</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Agent</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Location</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Budget</th>
+                <th className="text-left px-4 py-3.5 text-2xs font-medium text-muted-foreground">Response</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(lead => (
-                <tr key={lead.id} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors cursor-pointer"
+                <tr key={lead.id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors cursor-pointer"
                   onClick={() => openDetail(lead)}>
-                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                  <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
                     <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} />
                   </td>
-                  <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{lead.phone}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{SOURCE_LABELS[lead.source as keyof typeof SOURCE_LABELS] || lead.source}</td>
-                  <td className="px-4 py-3">{statusBadge(lead.status)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold flex items-center gap-1 ${scoreColor((lead as any).lead_score ?? 0)}`}>
+                  <td className="px-4 py-3.5 font-medium text-foreground">{lead.name}</td>
+                  <td className="px-4 py-3.5 text-2xs text-muted-foreground">{lead.phone}</td>
+                  <td className="px-4 py-3.5 text-2xs text-muted-foreground">{SOURCE_LABELS[lead.source as keyof typeof SOURCE_LABELS] || lead.source}</td>
+                  <td className="px-4 py-3.5">{statusBadge(lead.status)}</td>
+                  <td className="px-4 py-3.5">
+                    <span className={`text-2xs font-semibold flex items-center gap-1 ${scoreColor((lead as any).lead_score ?? 0)}`}>
                       <Star size={10} /> {(lead as any).lead_score ?? 0}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{lead.agents?.name || 'Unassigned'}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{lead.preferred_location || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{lead.budget || '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 text-2xs text-muted-foreground">{lead.agents?.name || 'Unassigned'}</td>
+                  <td className="px-4 py-3.5 text-2xs text-muted-foreground">{lead.preferred_location || '—'}</td>
+                  <td className="px-4 py-3.5 text-2xs text-muted-foreground">{lead.budget || '—'}</td>
+                  <td className="px-4 py-3.5">
                     {lead.first_response_time_min !== null ? (
-                      <span className={`text-xs font-medium ${(lead.first_response_time_min ?? 0) <= 5 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <span className={`text-2xs font-medium ${(lead.first_response_time_min ?? 0) <= 5 ? 'text-success' : 'text-destructive'}`}>
                         {lead.first_response_time_min}m
                       </span>
                     ) : (
-                      <span className="text-xs text-destructive font-medium">Pending</span>
+                      <span className="text-2xs text-destructive font-medium">Pending</span>
                     )}
                   </td>
                 </tr>
