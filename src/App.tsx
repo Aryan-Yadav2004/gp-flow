@@ -20,6 +20,8 @@ import Availability from "./pages/Availability";
 import Matching from "./pages/Matching";
 import Bookings from "./pages/Bookings";
 import ZoneManagement from "./pages/ZoneManagement";
+import Explore from "./pages/Explore";
+import PropertyDetail from "./pages/PropertyDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +33,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public customer-facing routes */}
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/property/:propertyId" element={<PropertyDetail />} />
           <Route path="/capture" element={<LeadCapture />} />
+
+          {/* Internal CRM routes */}
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
           <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />

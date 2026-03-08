@@ -516,6 +516,39 @@ export type Database = {
           },
         ]
       }
+      landmarks: {
+        Row: {
+          area: string | null
+          city: string
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          type: string
+        }
+        Insert: {
+          area?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          type?: string
+        }
+        Update: {
+          area?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           assigned_agent_id: string | null
@@ -721,16 +754,22 @@ export type Database = {
           area: string | null
           city: string | null
           created_at: string
+          description: string | null
           gender_allowed: string | null
           google_maps_link: string | null
           id: string
           is_active: boolean
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
           name: string
           owner_id: string | null
           photos: string[] | null
           price_range: string | null
           property_manager: string | null
+          rating: number | null
           total_beds: number | null
+          total_reviews: number | null
           total_rooms: number | null
           virtual_tour_link: string | null
           zone_id: string | null
@@ -741,16 +780,22 @@ export type Database = {
           area?: string | null
           city?: string | null
           created_at?: string
+          description?: string | null
           gender_allowed?: string | null
           google_maps_link?: string | null
           id?: string
           is_active?: boolean
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
           owner_id?: string | null
           photos?: string[] | null
           price_range?: string | null
           property_manager?: string | null
+          rating?: number | null
           total_beds?: number | null
+          total_reviews?: number | null
           total_rooms?: number | null
           virtual_tour_link?: string | null
           zone_id?: string | null
@@ -761,16 +806,22 @@ export type Database = {
           area?: string | null
           city?: string | null
           created_at?: string
+          description?: string | null
           gender_allowed?: string | null
           google_maps_link?: string | null
           id?: string
           is_active?: boolean
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           owner_id?: string | null
           photos?: string[] | null
           price_range?: string | null
           property_manager?: string | null
+          rating?: number | null
           total_beds?: number | null
+          total_reviews?: number | null
           total_rooms?: number | null
           virtual_tour_link?: string | null
           zone_id?: string | null
@@ -788,6 +839,105 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          bed_id: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          expires_at: string | null
+          id: string
+          lead_id: string | null
+          monthly_rent: number | null
+          move_in_date: string
+          payment_reference: string | null
+          property_id: string
+          reservation_fee: number | null
+          reservation_status: string
+          room_id: string | null
+          room_type: string | null
+          soft_lock_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bed_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          expires_at?: string | null
+          id?: string
+          lead_id?: string | null
+          monthly_rent?: number | null
+          move_in_date: string
+          payment_reference?: string | null
+          property_id: string
+          reservation_fee?: number | null
+          reservation_status?: string
+          room_id?: string | null
+          room_type?: string | null
+          soft_lock_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bed_id?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          expires_at?: string | null
+          id?: string
+          lead_id?: string | null
+          monthly_rent?: number | null
+          move_in_date?: string
+          payment_reference?: string | null
+          property_id?: string
+          reservation_fee?: number | null
+          reservation_status?: string
+          room_id?: string | null
+          room_type?: string | null
+          soft_lock_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_bed_id_fkey"
+            columns: ["bed_id"]
+            isOneToOne: false
+            referencedRelation: "beds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_soft_lock_id_fkey"
+            columns: ["soft_lock_id"]
+            isOneToOne: false
+            referencedRelation: "soft_locks"
             referencedColumns: ["id"]
           },
         ]
@@ -1168,7 +1318,25 @@ export type Database = {
     Functions: {
       auto_lock_stale_rooms: { Args: never; Returns: undefined }
       calculate_lead_score: { Args: { p_lead_id: string }; Returns: number }
+      confirm_reservation: {
+        Args: { p_payment_reference: string; p_reservation_id: string }
+        Returns: Json
+      }
       create_overdue_notifications: { Args: never; Returns: undefined }
+      create_reservation_lock: {
+        Args: {
+          p_bed_id: string
+          p_customer_email?: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_monthly_rent?: number
+          p_move_in_date?: string
+          p_property_id: string
+          p_room_id: string
+          p_room_type?: string
+        }
+        Returns: Json
+      }
       get_property_effort: { Args: { p_property_id: string }; Returns: Json }
       match_beds_for_lead: {
         Args: { p_budget: number; p_location: string; p_room_type?: string }
@@ -1217,7 +1385,11 @@ export type Database = {
         | "facebook"
         | "phone"
         | "landing_page"
-      lock_type: "visit_scheduled" | "pre_booking" | "virtual_tour"
+      lock_type:
+        | "visit_scheduled"
+        | "pre_booking"
+        | "virtual_tour"
+        | "reservation_hold"
       payment_status: "unpaid" | "partial" | "paid"
       pipeline_stage:
         | "new"
@@ -1380,7 +1552,12 @@ export const Constants = {
         "phone",
         "landing_page",
       ],
-      lock_type: ["visit_scheduled", "pre_booking", "virtual_tour"],
+      lock_type: [
+        "visit_scheduled",
+        "pre_booking",
+        "virtual_tour",
+        "reservation_hold",
+      ],
       payment_status: ["unpaid", "partial", "paid"],
       pipeline_stage: [
         "new",
