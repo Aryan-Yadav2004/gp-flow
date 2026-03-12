@@ -28,6 +28,7 @@ const supplyItems = [
 ];
 
 const portalItems = [
+  { to: '/lead-operations', icon: Sparkles, label: 'Lead Operations' },
   { to: '/owner-portal', icon: UserCircle, label: 'Owner Portal' },
 ];
 

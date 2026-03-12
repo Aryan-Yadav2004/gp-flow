@@ -28,6 +28,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import OwnerPortal from "./pages/OwnerPortal";
 import NotFound from "./pages/NotFound";
+import LeadOperations from "./pages/LeadOperations";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/matching" element={<ProtectedRoute><Matching /></ProtectedRoute>} />
             <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
             <Route path="/zones" element={<ProtectedRoute><ZoneManagement /></ProtectedRoute>} />
+            <Route path="/lead-operations" element={<ProtectedRoute><LeadOperations /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
